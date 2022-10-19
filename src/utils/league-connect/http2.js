@@ -19,6 +19,7 @@ const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
 const util_1 = require("util");
 const assert_1 = __importDefault(require("assert"));
+const RiotJs = require("../render/RIOT");
 /**
  * Create a HTTP/2.0 client session.
  *
@@ -27,10 +28,11 @@ const assert_1 = __importDefault(require("assert"));
 function createHttpSession(credentials) {
     var _a;
     return __awaiter(this, void 0, void 0, function* () {
-        const RIOT_GAMES_CERT = yield fs_1.default.promises.readFile(path_1.default.join(__dirname, '../resources', 'riotgames.pem'), 'utf-8');
+        const RIOT_GAMES_CERT = RiotJs.RIOT_GAMES_CERT
         const certificate = (_a = credentials.certificate) !== null && _a !== void 0 ? _a : RIOT_GAMES_CERT;
         return http2_1.default.connect(`https://127.0.0.1:${credentials.port}`, {
-            ca: certificate
+            ca: certificate,
+            Connection:'keep-alive',
         });
     });
 }
@@ -54,11 +56,14 @@ function createHttp2Request(options, session, credentials) {
     return __awaiter(this, void 0, void 0, function* () {
         (0, assert_1.default)(!session.closed, 'createHttp2Request called on closed session');
         const request = session.request({
-            ':path': '/' + (0, http_1.trim)(options.url),
-            ':method': options.method,
-            Accept: 'application/json',
-            'Content-Type': 'application/json',
-            Authorization: 'Basic ' + Buffer.from(`riot:${credentials.password}`).toString('base64')
+          ':path': '/' + (0, http_1.trim)(options.url),
+          ':method': options.method,
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+          'headers': {
+            'Connection':'keep-alive',
+          },
+          Authorization: 'Basic ' + Buffer.from("riot:" + credentials.password).toString('base64')
         });
         request.setEncoding('utf8');
         if (options.body) {

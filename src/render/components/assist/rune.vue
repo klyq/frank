@@ -1,34 +1,21 @@
 <template>
-  <div>
-    <n-card class="boxShadow" size="small" v-mouse-drag="handldDrge">
+  <div v-if="runeDataListFor.length !==0">
+    <n-card class="boxShadow" size="small">
       <n-space justify="space-between">
-        <n-popconfirm :show-icon="false" positive-text="确认" negative-text="取消"
-                      @positive-click="setAutoRune" @negative-click="deleteAutoRune"
-        >
-          <template #trigger>
-            <n-skeleton v-if="loading" circle size="medium" style="width: 50px;height: 50px;" />
-            <n-badge v-else :value="isAutoRune" color="#ff6666">
-              <n-avatar
-                round
-                :bordered="false"
-                :size="50"
-                :src="currentChampImgUrl"
-                fallback-src="https://wegame.gtimg.com/g.26-r.c2d3c/helper/lol/assis/images/resources/usericon/4027.png"
-                style="display: block"
-              />
+        <n-badge :value="isAutoRune" color="#ff6666">
+          <n-avatar
+            round
+            :bordered="false"
+            :size="50"
+            :src="currentChampImgUrl"
+            fallback-src="https://wegame.gtimg.com/g.26-r.c2d3c/helper/lol/assis/images/resources/usericon/4027.png"
+            style="display: block"
+            @click="restraintActive = true"
+          />
+        </n-badge>
 
-            </n-badge>
-          </template>
-          设置自动配置符文
-        </n-popconfirm>
-
-        <div>
-          <n-tag type="success" :bordered="false" :round="true">
-              {{ currentChampName }}
-          </n-tag>
-        </div>
-        <div class="buttonSwitch" >
-          <n-space>
+        <div class="buttonSwitch">
+          <n-space >
             <n-button text style="font-size: 2em" @click="pageBack">
               <n-icon>
                 <arrow-big-left-line></arrow-big-left-line>
@@ -41,27 +28,15 @@
             </n-button>
           </n-space>
         </div>
+        <n-select @update:value="changeRuneType($event)"
+                  v-model:value="runeValue" :options="runeOptions" />
       </n-space>
     </n-card>
-    <n-grid :cols="2" v-if="loading" style="margin-left: 15px;margin-top: 30px">
-      <n-gi>
-        <n-skeleton style="border-radius: 10px;" :width="130" :height="190" :sharp="false" size="medium"/>
-      </n-gi>
-      <n-gi>
-        <n-skeleton style="border-radius: 10px;" :width="130" :height="190" :sharp="false" size="medium"/>
-      </n-gi>
-      <n-gi style="margin-top: 30px">
-        <n-skeleton style="border-radius: 10px;" :width="130" :height="190" :sharp="false" size="medium"/>
-      </n-gi>
-      <n-gi style="margin-top: 30px">
-        <n-skeleton style="border-radius: 10px;" :width="130" :height="190" :sharp="false" size="medium"/>
-      </n-gi>
-    </n-grid>
-    <n-grid :cols="2" v-else>
-      <n-gi v-for="(rune,index) in runeDataListFor">
+    <n-grid :cols="2" >
+      <n-gi v-for="rune in runeDataListFor">
         <n-card class="boxShadow runeCard" size="small">
           <n-space :size=[-5] align="stretch">
-            <n-space vertical style="width: 50px;"  :size=[1,-5]>
+            <n-space vertical style="width: 50px;" :size=[1,-5]>
               <img :src="getImaUrl(rune.selectedPerkIds[0])" alt="" class="runImg">
               <img :src="getImaUrl(rune.selectedPerkIds[1])" alt="" class="runImg">
               <img :src="getImaUrl(rune.selectedPerkIds[2])" alt="" class="runImg">
@@ -80,231 +55,334 @@
                 <img :src="getImaUrl(rune.selectedPerkIds[8])" alt="" class="runImgseSondary">
               </n-space>
               <div style="margin-top: 12px">
-                <n-popover trigger="hover" placement="top-end" :delay="1000" >
-                  <template #trigger>
-                    <n-tag :bordered="false" type="success"
-                           size="medium" @click="applyRune(rune)">
-                      应用
-                    </n-tag>
-                  </template>
-                  <span>Win {{ rune.winRate }} <br/>Pick {{ rune.pickCount }}</span>
-                </n-popover>
+                <n-tag :bordered="false" type="success"
+                       size="medium" @click="applyRune(rune)">
+                  应用
+                </n-tag>
               </div>
-
             </n-space>
           </n-space>
         </n-card>
       </n-gi>
     </n-grid>
+    <n-card class="boxShadow bottomTip" size="small">
+      <n-space :size="[44]">
+        <div class="skillDiv slide-in-bottom" v-for="skills in skillsAndItems[0]">
+          <img class="itemImg" :src="skills[0]">
+          <strong class="skillText">{{ skills[1] }}</strong>
+        </div>
+        <div class="skillDiv slide-in-bottom" v-for="items in skillsAndItems[itemCount]">
+          <img :src="items" class="itemImg">
+        </div>
+      </n-space>
+      <div class="itemsTotal slide-in-bottom" v-if="skillsAndItems.length !=0">
+        <n-space>
+          <n-button size="tiny" text text-color="#9aa4af" @click="changeItemsImg">
+            切换装备
+          </n-button>
 
+          <div style="width: 32px;">
+            <span>{{ itemCount }}</span>
+            <span>/</span>
+            <span>{{ skillsAndItems.length - 1 }}</span>
+          </div>
+        </n-space>
+      </div>
+      <div class="runesTotal slide-in-bottom" v-if="skillsAndItems.length !=0">
+        <n-space>
+          <n-button size="tiny" text text-color="#9aa4af">
+            符文数量
+            <p style="font-size: 14px;margin-left: 8px">{{runeDataCount}}</p>
+          </n-button>
+        </n-space>
+      </div>
+    </n-card>
 
+    <n-drawer :auto-focus="false" v-model:show="restraintActive"
+              style="border-top-left-radius: 12px;border-top-right-radius: 12px"
+              :height="546" placement="bottom">
+      <n-drawer-content >
+        <restraint :champ="currentChamp" @autoRune="autoRune"></restraint>
+      </n-drawer-content>
+    </n-drawer>
+  </div>
+
+  <div v-else>
+    <n-card class="boxShadow" size="small">
+      <n-space justify="center" vertical>
+        <p style="color: #9aa4af;">符文来源 OP.GG or 101.QQ.com</p>
+        <p style="color: #9aa4af;">英雄选择阶段才可以使用符文配置功能</p>
+      </n-space>
+    </n-card>
   </div>
 </template>
 
-<script>
+<script setup>
 import {ipcRenderer} from "electron"
 import {
-  NCard, NAvatar, NSpace, NTag, NModal, NGrid, NGi, NIcon, NBadge, NSkeleton,
-  NInput, NButton, NSelect, NPopover, NList, NListItem, NPopconfirm, useMessage
+  NCard, NAvatar, NSpace, NTag, NGrid, NGi, NIcon,
+  NBadge, NButton, useMessage,NDrawer, NDrawerContent,NSelect
 } from 'naive-ui'
 import {ref} from "vue";
 import {champDict, mapNameFromUrl} from '../../../utils/render/lolDataList'
 import {appConfig} from '../../../utils/main/config'
 import {ArrowBigRightLine, ArrowBigLeftLine} from '@vicons/tabler'
 import {request} from "../../../utils/render/request"
-import {sendMessageToChat} from "@/utils/main/lcu";
+import {applyRunePage} from "@/utils/main/lcu";
+import Restraint from "./restraint.vue";
+import {get101Runes} from "@/utils/render/get101Runes";
 
-const fs = require('fs')
-
-export default {
-  name: "rune",
-  components: {
-    NCard, NAvatar, NSpace, NTag, NModal, NGrid, NGi, NIcon, NBadge, NPopconfirm, NSkeleton,
-    NInput, NButton, NSelect, NPopover, NList, NListItem, ArrowBigRightLine, ArrowBigLeftLine
+const currentChamp = ref(null)
+const currentChampImgUrl = ref('')
+const currentChampAlias = ref('')
+let runeDataList = []
+const runeDataCount = ref(0)
+const runeDataListFor = ref([])
+let pageStart = 0
+let pageEnd = 0
+const isAutoRune = ref(0)
+const loading = ref(true)
+const skillsAndItems = ref([])
+const itemCount = ref(1)
+const credentials = appConfig.get('credentials')
+let currentGameMode = ''
+const restraintActive = ref(false)
+const runeValue =  ref(appConfig.get('runeType'))
+const runeOptions =  [
+  {
+    label: '国服数据',
+    value: '国服数据'
   },
-  setup() {
-    let currentChamp = ref(null)
-    let currentChampImgUrl = ref('')
-    let currentChampName = ref('请先选择英雄')
-    let currentChampAlias = ref('')
-    let runeDataList = []
-    let runeDataListFor = ref([])
-    let pageStart = ref(0)
-    let pageEnd = ref(0)
-    const limitCount = 1
-    let count = 0
-    let isAutoRune = ref(0)
-    let loading = ref(true)
+  {
+    label: "韩服数据",
+    value: '韩服数据',
+  }]
 
-    const message = useMessage()
+const message = useMessage()
 
-    ipcRenderer.on('current-champ-select', (event, data) => {
-      if (data == 0 || data == undefined) {
-        return
-      }
-      if (data != currentChamp.value) {
-        runeDataList = []
-        count = 0
-        isAutoRune.value = appConfig.has(`autoRune.${data}`) == true ? 'auto' : 0
-      }
-      count += 1
-      currentChamp.value = data
-      mapChamp(data)
-      getRuneData()
-    })
+ipcRenderer.on('show-other-summoner', () => {
+  runeDataListFor.value.length = 0
+  currentChamp.value=null
+})
+ipcRenderer.on('query-other-summoner', () => {
+  currentGameMode = ''
+})
 
-    const getRuneData = async () => {
-      if (limitCount == count) {
-        ipcRenderer.send('show-assistWindow', currentChamp.value)
-        let runeData
-        try {
-          // ${currentChampAlias.value}
-          // let runeData = JSON.parse(fs.readFileSync(`${appConfig.get('gameDirectory')}\\runePage\\${currentChampAlias.value}.json`, 'utf-8'))
+ipcRenderer.on('current-champ-select', (event, data) => {
+  if (data.champId === 0 || data.champId.httpStatus === 404) {
+    return
+  }
+  if (data.champId != currentChamp.value) {
+    runeDataList = []
+    skillsAndItems.value = []
+    itemCount.value = 1
+    isAutoRune.value = appConfig.has(`autoRune.${data.champId}`) == true ? 'auto' : 0
+    currentChamp.value = data.champId
+    mapChamp(data.champId)
+    getRuneData(data.mode)
+  }
+  // 设置当前游戏模式
+  if (currentGameMode === ''){currentGameMode = data.mode}
+})
 
-          if (appConfig.get('haveLocalRune')==true){
-            runeData = JSON.parse(fs.readFileSync(`${appConfig.get('gameDirectory')}\\runes\\${currentChampAlias.value}.json`, 'utf-8'))
-          }else {
-            runeData = (await request({
-              url: `https://unpkg.com/@java_s/op.gg/${currentChampAlias.value}.json`,
-              method: 'GET',
-            })).data
-          }
-          for (const runeDatum of runeData) {
-            for (const rune of runeDatum.runes) {
-              runeDataList.push(rune)
-            }
-          }
-          pageStart = 0
-          pageEnd = runeDataList.length > 4 ? 4 : runeDataList.length
-          runeDataListFor.value = runeDataList.slice(pageStart, pageEnd)
-          if (appConfig.has(`autoRune.${currentChamp.value}`)) {
-            sendMessageToChat(appConfig.get('credentials'),
-              `Frank 一款全新的LOL助手软件\n${champDict[currentChamp.value].label}的符文 由Frank自动配置成功!\n了解更多功能: https://www.yuque.com/java-s/frank`)
-            message.success('自动配置符文成功')
-          }
-          loading.value = false
-        } catch (e) {
-          console.log(e)
+
+// 获取英雄数据
+const getChampInfo = async (gameMode) => {
+  if (gameMode === 'aram' && currentGameMode === 'aram') {
+    return (await request({
+      url: `https://frank-1304009809.cos.ap-chongqing.myqcloud.com/op.gg-aram/${currentChampAlias.value}.json`,
+      method: 'GET',
+    })).data
+  } else {
+    return  (await request({
+      url: `https://frank-1304009809.cos.ap-chongqing.myqcloud.com/op.gg/${currentChampAlias.value}.json `,
+      method: 'GET',
+    })).data
+  }
+}
+
+// 获取符文数据
+const getRuneData = async (gameMode) => {
+  // 判断当前英雄是否配置看自动符文
+  if (appConfig.has(`autoRune.${currentChamp.value}` )){
+    applyRunePage(credentials,appConfig.get(`autoRune.${currentChamp.value}`))
+  }
+
+  try {
+    const champInfo = await getChampInfo(gameMode)
+    // 技能
+    getSkillsImgUrl(champInfo[0].skillsImg, champInfo[0].skills)
+
+    for (const champ of champInfo) {
+      // 符文
+      for (const rune of champ.runes) {
+        if (gameMode == 'aram' && currentGameMode === 'aram') {
+          rune.position = 'aram'
         }
-      } else {
-        return
+        runeDataList.push(rune)
       }
+      // 装备
+      getItemImgUrl(champ.itemBuilds[0].blocks)
     }
-    // getRuneData()
+    if (runeValue.value ==='国服数据' && gameMode !== 'aram'){
+      runeDataList = await get101Runes(currentChamp.value)
+    }
+    runeDataCount.value = runeDataList.length
+    pageStart = 0
+    pageEnd = runeDataList.length > 4 ? 4 : runeDataList.length
+    runeDataListFor.value = runeDataList.slice(pageStart, pageEnd)
 
-    // 获取图片地址
-    const getImaUrl = (imgId) => {
-      return require(`../../assets/runes/${imgId}.png`)
-    }
-    // 获取位置信息
-    const getPosition = (pos) => {
-      let position
-      switch (pos) {
-        case 'middle':
-          position = '中单';
-          break;
-        case 'top':
-          position = '上单';
-          break;
-        case 'support':
-          position = '辅助';
-          break;
-        case 'jungle':
-          position = '打野';
-          break;
-        case 'bottom':
-          position = '射手';
-          break;
-      }
-      return position
-    }
-    // 通过英雄ID获取部分信息
-    const mapChamp = (champId) => {
-          currentChampImgUrl.value = `https://game.gtimg.cn/images/lol/act/img/champion/${champDict[champId].alias}.png`
-          currentChampName.value = champDict[champId].label
-          currentChampAlias.value = champDict[champId].alias
-    }
-    // 应用符文
-    const applyRune = (data) => {
-      try {
-        let tempData = JSON.parse(JSON.stringify(data))
-        tempData.name = data.alias + ' Powered By Frank'
-        ipcRenderer.send('apply-rune-page', JSON.parse(JSON.stringify(tempData)))
-        message.success('符文配置成功')
-        console.log(mapNameFromUrl[data.alias].label)
-        sendMessageToChat(appConfig.get('credentials'),
-          `Frank 一款全新的LOL助手软件\n${mapNameFromUrl[data.alias].label}的符文 由Frank一键配置成功!\n了解更多功能: https://yuque.comm/java-s/frank`)
-      } catch (e) {
-        message.error('符文配置失败')
-      }
-    }
-    // 拖动顶部盒子 改变窗口位置
-    const handldDrge = (pos) => {
-      ipcRenderer.send('move-assistWindow', {
-        x: pos.x,
-        y: pos.y
-      })
-    }
-    // 上一页
-    const pageBack = () => {
-      if (pageStart != 0 && pageEnd != runeDataList.length) {
-        pageStart = pageStart - 4
-        pageEnd = pageEnd - 4
-        runeDataListFor.value = runeDataList.slice(pageStart, pageEnd)
-      } else if (pageEnd == runeDataList.length) {
-        pageEnd = pageStart
-        pageStart = pageStart - 4
-        runeDataListFor.value = runeDataList.slice(pageStart, pageEnd)
-      } else {
-        message.warning('当前是首页哦!')
-      }
-
-    }
-    // 下一页
-    const pageNext = () => {
-      const dataListLen = runeDataList.length
-      if (pageEnd +4 < dataListLen) {
-        pageStart = pageEnd
-        pageEnd = pageEnd +4
-        runeDataListFor.value = runeDataList.slice(pageStart, pageEnd)
-      } else if (pageEnd < dataListLen) {
-        pageStart = pageEnd
-        pageEnd = dataListLen
-        runeDataListFor.value = runeDataList.slice(pageStart, pageEnd)
-      } else {
-        message.warning('已经是最后一页咯!')
-      }
+    if (appConfig.has(`autoRune.${currentChamp.value}`)) {
+      message.success('自动配置符文成功')
     }
 
-    // 设置自动配置符文
-    const setAutoRune = () => {
-      ipcRenderer.send('set-auto-rune', currentChamp.value)
-      isAutoRune.value = 'auto'
-    }
-    // 删除自动配置符文
-    const deleteAutoRune = () => {
-      if (appConfig.has(`autoRune.${currentChamp.value}`)) {
-        appConfig.delete(`autoRune.${currentChamp.value}`)
-        isAutoRune.value = 0
-      }
-    }
+  } catch (e) {
+    console.log(e)
+  }
 
-    return {
-      currentChamp, currentChampImgUrl, currentChampName, loading,
-      runeDataList, pageStart, pageEnd, runeDataListFor, isAutoRune,
-      getImaUrl, getPosition, applyRune, handldDrge, pageBack, pageNext, setAutoRune, deleteAutoRune
+}
+
+// 切换不同服务器的符文数据
+const changeRuneType = (type) => {
+  if (type==='国服数据'){
+    runeValue.value ='国服数据'
+    appConfig.set('runeType','国服数据')
+  }else {
+    runeValue.value ='韩服数据'
+    appConfig.set('runeType','韩服数据')
+  }
+  runeDataList =[]
+  runeDataListFor.value = []
+  skillsAndItems.value = []
+  itemCount.value = 1
+  getRuneData(currentGameMode)
+}
+
+// const test = () => {
+//   currentChampAlias.value = 'Viktor'
+//   currentChamp.value = 112
+//   currentChampImgUrl.value = `https://game.gtimg.cn/images/lol/act/img/champion/Viktor.png`
+//   getRuneData('')
+// }
+// test()
+
+// 切换不同的装备进行显示
+const changeItemsImg = () => {
+  if (itemCount.value < skillsAndItems.value.length - 1) {
+    itemCount.value += 1
+  } else {
+    itemCount.value = 1
+  }
+}
+
+// 获取装备图片链接数组
+const getItemImgUrl = (blocks) => {
+  for (const blocksElement of blocks) {
+    if (blocksElement.type.indexOf('Core')!==-1) {
+      var currentItemList = []
+      if (blocksElement.items.length > 3){blocksElement.items = blocksElement.items.slice(1)}
+      for (const items of blocksElement.items) {
+        const itemImgUrl = `https://game.gtimg.cn/images/lol/act/img/item/${items.id}.png`
+        currentItemList.push(itemImgUrl)
+      }
+      skillsAndItems.value.push(currentItemList)
     }
+  }
+
+}
+// 获取技能图片链接数组
+const getSkillsImgUrl = (skillsImg, skills) => {
+  let skillsList = []
+
+  for (let i = 0; i < skillsImg.length; i++) {
+    const skillImgUrl = `https://game.gtimg.cn/images/lol/act/img/spell/${skillsImg[i]}`
+    skillsList.push([skillImgUrl, skills[i]])
+  }
+  skillsAndItems.value.push(skillsList)
+}
+
+// 获取图片地址
+const getImaUrl = (imgId) => {
+  return require(`../../assets/runes/${imgId}.png`)
+}
+// 获取位置信息
+const getPosition = (pos) => {
+  switch (pos) {
+    case 'middle':
+      return '中单';
+    case 'top':
+      return '上单';
+    case 'support':
+      return '辅助';
+    case 'jungle':
+      return '打野';
+    case 'bottom':
+      return '射手';
+    case 'aram':
+      return '极地';
+    case 'mid':
+      return '中单';
+  }
+}
+// 通过英雄ID获取部分信息
+const mapChamp = (champId) => {
+  currentChampImgUrl.value = `https://game.gtimg.cn/images/lol/act/img/champion/${champDict[champId].alias}.png`
+  currentChampAlias.value = champDict[champId].alias
+}
+// 应用符文
+const applyRune = async (data) => {
+  let tempData = JSON.parse(JSON.stringify(data))
+  tempData.name = mapNameFromUrl[data.alias].name + " By Frank"
+  const isApplySuccess = await applyRunePage(credentials,JSON.parse(JSON.stringify(tempData)))
+
+  if (isApplySuccess){
+    message.success('符文配置成功')
+  }else {
+    message.error('符文配置失败, 按Ctrl+R 再试试')
+  }
+}
+
+// 上一页
+const pageBack = () => {
+  if (pageStart != 0 && pageEnd != runeDataList.length) {
+    pageStart = pageStart - 4
+    pageEnd = pageEnd - 4
+    runeDataListFor.value = runeDataList.slice(pageStart, pageEnd)
+  } else if (pageEnd == runeDataList.length && pageStart!==0) {
+    pageEnd = pageStart
+    pageStart = pageStart - 4
+    runeDataListFor.value = runeDataList.slice(pageStart, pageEnd)
+  } else {
+    message.warning('当前是首页哦!')
+  }
+
+}
+// 下一页
+const pageNext = () => {
+  const dataListLen = runeDataList.length
+  if (pageEnd + 4 < dataListLen) {
+    pageStart = pageEnd
+    pageEnd = pageEnd + 4
+    runeDataListFor.value = runeDataList.slice(pageStart, pageEnd)
+  } else if (pageEnd < dataListLen) {
+    pageStart = pageEnd
+    pageEnd = dataListLen
+    runeDataListFor.value = runeDataList.slice(pageStart, pageEnd)
+  } else {
+    message.warning('已经是最后一页咯!')
+  }
+}
+
+const autoRune = (e) => {
+  if (e){
+    isAutoRune.value='auto'
+  }else {
+    isAutoRune.value=0
   }
 }
 </script>
 
 <style scoped>
-.mainCard {
-  width: 90%;
-  display: flex;
-  flex-direction: column;
-}
-
 .n-card {
   margin: 15px;
   border-radius: 10px;
@@ -313,12 +391,6 @@ export default {
 
 .n-space {
   align-items: center;
-}
-
-.boxShadow {
-  box-shadow: 0 1px 2px -2px rgba(0, 0, 0, 0.08),
-  0 3px 6px 0 rgba(0, 0, 0, 0.06),
-  0 5px 12px 4px rgba(0, 0, 0, 0.04);;
 }
 
 .runImgPrimary {
@@ -340,11 +412,80 @@ export default {
 .n-card > .n-card__content > .runeCard {
   padding: 0 !important;
 }
-/*.runeCard{*/
-/*  margin-top: 45px!important;*/
-/*}*/
+
 .buttonSwitch {
-  margin-top: 5px;
-  margin-left: -5px;
+  margin-top: 10px;
 }
+.runeSelect {
+  width: 95px;
+  position: absolute;
+  bottom: -25px;
+  right: -10px;
+}
+.bottomTip {
+  margin-bottom: 0px;
+  height: 80px;
+  padding-top: 10px;
+  padding-left: 1px;
+}
+
+.itemImg {
+  width: 35px;
+  height: 35px;
+  border-radius: 4px;
+  position: absolute;
+}
+
+.skillDiv {
+  position: relative;
+}
+
+.skillText {
+  width: 16px;
+  height: 16px;
+  position: absolute;
+  top: 19px;
+  left: 19px;
+  background: rgba(32, 45, 55, 0.9);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  white-space: nowrap;
+  color: rgb(0, 215, 176) !important;
+  font-size: 11px !important;
+}
+
+.itemsTotal {
+  position: absolute;
+  right: 4px;
+  bottom: -2px;
+  color: #9aa4af
+}
+.runesTotal {
+  position: absolute;
+  left: 18px;
+  bottom: -2px;
+  color: #9aa4af
+}
+
+.slide-in-bottom {
+  -webkit-animation: slide-in-bottom 0.5s cubic-bezier(0.250, 0.460, 0.450, 0.940) both;
+  animation: slide-in-bottom 0.5s cubic-bezier(0.250, 0.460, 0.450, 0.940) both;
+}
+
+@keyframes slide-in-bottom {
+  0% {
+    -webkit-transform: translateY(1000px);
+    transform: translateY(1000px);
+    opacity: 0;
+  }
+  100% {
+    -webkit-transform: translateY(0);
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+
 </style>

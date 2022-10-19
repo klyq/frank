@@ -12,11 +12,6 @@ const routes = [
     component: () => import('@/render/components/home')
   },
   {
-    path: '/dashboard',
-    name: 'Dashboard',
-    component: () => import('@/render/components/home/dashboard.vue')
-  },
-  {
     path: '/assist',
     name: 'Assist',
     component: () => import('@/render/components/assist/assistWindow.vue')
@@ -25,6 +20,11 @@ const routes = [
     path: '/matchHistory',
     name: 'MatchHistory',
     component: () => import('@/render/components/matchHistory/index.vue')
+  },
+  {
+    path: '/queryMatch',
+    name: 'QueryMatch',
+    component: () => import('@/render/components/queryMatch/index.vue')
   }
 ]
 

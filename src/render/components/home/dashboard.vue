@@ -1,9 +1,9 @@
 <template>
-  <header v-mouse-drag = "handldDrge" class="frankTitle">
+  <header v-mouse-drag="handldDrge" class="frankTitle">
     <n-space class="frankTitle">
-      <img src="../../assets/icon/app-icon.png" alt="" width="40" @click="handleMin" v-if="isConnectSuccess !=''">
-      <img src="../../assets/icon/app-icon-bw.png" alt="" width="40" @click="handleMin" v-else>
-      <img src="../../assets/icon/Frank.png" style="margin-top: 4px">
+      <img src="../../assets/icon/app-icon.png" draggable="false" alt="" width="40" @click="handleMin" v-if="isConnectSuccess !=''">
+      <img src="../../assets/icon/app-icon-bw.png" draggable="false"  alt="" width="40" @click="handleMin" v-else>
+      <img src="../../assets/icon/Frank.png" draggable="false"  style="margin-top: 4px">
     </n-space>
 
     <n-space class="rightCorner">
@@ -21,7 +21,7 @@
       </n-popover>
       <n-popover :show-arrow="false" trigger="hover" :delay="1000">
         <template #trigger>
-          <n-button text circle color="black" @click="toSettingPage">
+          <n-button text circle color="black" @click="changePage">
             <n-icon size="24">
               <settings/>
             </n-icon>
@@ -29,77 +29,58 @@
         </template>
         设置
       </n-popover>
-      <n-popover :show-arrow="false" trigger="hover" :delay="1000">
+      <n-popconfirm @positive-click="handleClose" :show-icon="false"
+                    negative-text="取消" positive-text="确认">
         <template #trigger>
-          <n-button text circle @click="handleClose" color="black">
+          <n-button text circle color="black">
             <n-icon size="24">
               <circle-x/>
             </n-icon>
           </n-button>
         </template>
-        退出
-      </n-popover>
-
+        是否退出Frank?
+      </n-popconfirm>
     </n-space>
   </header>
 </template>
 
-<script>
-import {NIcon, NSpace, NButton, NPopover} from 'naive-ui'
+<script setup>
+import {NIcon, NSpace, NButton, NPopover,NPopconfirm} from 'naive-ui'
 import {ChevronsDownRight, Settings, CircleX} from '@vicons/tabler'
-import {useStore} from "@/render/store";
 import {ipcRenderer} from 'electron'
 import {ref} from "vue";
 import {appConfig} from "@/utils/main/config";
 
-export default {
-  name: "Dashboard",
-  components: {
-    NIcon, NSpace, NButton, NPopover,
-    ChevronsDownRight, Settings, CircleX
-  },
-  setup() {
-    const store = useStore()
-    let isConnectSuccess = ref(appConfig.get('credentials.port'))
+const emits = defineEmits(['changePage'])
+let isConnectSuccess = ref(appConfig.get('credentials.port'))
 
-    const toSettingPage = () => {
-      store.pageIncrease()
-    }
-
-    const handldDrge = (pos) =>{
-      ipcRenderer.send('move-main',{
-        x:pos.x,
-        y:pos.y
-      })
-    }
-
-    const handleMinimize = () =>{
-      ipcRenderer.send('mainwin-minimize')
-    }
-
-    const handleMin = () =>{
-      ipcRenderer.send('mainwin-min')
-    }
-
-    const handleClose = () =>{
-      ipcRenderer.send('mainwin-close')
-    }
-
-    ipcRenderer.once('client-connect-success',(res)  => {
-      isConnectSuccess.value = true
-      // 如果英雄联盟客户端是在Frank之后启动
-      // 那么在与客户端连成功后 判断首页的显示方式 如果是本地获取 那么需要刷新一次首页获取数据
-      if (res == 'noClient' && appConfig.get('homeShowWay')=='local'){
-        location.reload()
-      }
-    })
-
-    return {
-      isConnectSuccess,toSettingPage,
-      handldDrge,handleMinimize,handleMin,handleClose
-    }
-  }
+const changePage = () => {
+  emits('changePage')
 }
+
+const handldDrge = (pos) => {
+  ipcRenderer.send('move-main', {
+    x: pos.x,
+    y: pos.y,
+  })
+}
+
+const handleMinimize = () => {
+  ipcRenderer.send('mainwin-minimize')
+}
+
+const handleMin = () => {
+  ipcRenderer.send('mainwin-min')
+}
+
+const handleClose = () => {
+  ipcRenderer.send('mainwin-close')
+}
+
+ipcRenderer.once('client-connect-success', () => {
+  isConnectSuccess.value = true
+})
+
 </script>
 
 <style scoped>
